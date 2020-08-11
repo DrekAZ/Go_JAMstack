@@ -1,0 +1,19 @@
+{
+  "name": "YOU_KNOW",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/DrekAZ/YOU_KNOW.git",
+  "author": "A <kassuruv2@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "vuepress": "1.2.0"
+  },
+  "scripts": {
+    "dev": "vuepress dev docs",
+    "build": "vuepress build docs"
+  },
+  "devDependencies": {
+    "@vuepress/plugin-blog": "^1.9.2",
+    "vuetify": "^2.2.26"
+  }
+}

@@ -1,3 +1,4 @@
-VuePress & Go & GCPでブログサイト作成
-Go & GCP = HeadlessCMS
-VuePress = Layout
+Go & GCP
+computeEngine : Docker & Go
+FireStore     : DataBase
+CloudStorage  : DataBase for Media(Pictures)

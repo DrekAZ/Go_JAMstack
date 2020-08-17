@@ -28,8 +28,8 @@ import (
 	//"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	"./auth"
-	"./query"
+	"server_modules/auth"
+	"server_modules/query"
 )
 
 // user info data (comments, profile ...) struct

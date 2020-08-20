@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 
-	"server_module/auth_module/codes"
+	"auth_module/codes"
 )
 
 type AuthEnv struct {

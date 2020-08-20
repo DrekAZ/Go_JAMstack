@@ -3,6 +3,7 @@ module server_module
 go 1.15
 
 require (
+	auth_module/codes v0.0.0-00010101000000-000000000000 // indirect
 	cloud.google.com/go/firestore v1.3.0
 	github.com/gin-contrib/sessions v0.0.3
 	github.com/gin-gonic/gin v1.6.3
@@ -14,6 +15,7 @@ require (
 )
 
 replace (
+	auth_module/codes => ./auth/codes
 	server_module/auth => ./auth
 	server_module/query => ./query
 )

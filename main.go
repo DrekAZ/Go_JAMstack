@@ -34,24 +34,24 @@ import (
 
 // user info data (comments, profile ...) struct
 type UserInfo struct {
-	Name     string `json: "Name"`
-	IconPath string `json: "IconPath"`
+	Name     string `json:"Name"`
+	IconPath string `json:"IconPath"`
 }
 
 // new user datas struct
 type NewUser struct {
-	Name     string `json: "Name"`
-	IconPath string `json: "IconPath"`
-	Address  string `json: "Address"`
-	Password string `json: "Password"`
+	Name     string `json:"Name"`
+	IconPath string `json:"IconPath"`
+	Address  string `json:"Address"`
+	Password string `json:"Password"`
 }
 
 // Content Struct
 type Content struct {
-	UserID   string   `json: "UserID"`
-	Title    string   `json: "Title"`
+	UserID   string   `json:"UserID"`
+	Title    string   `json:"Title"`
 	Markdown string   `json:"Markdown"`
-	Tags     []string `json: "Tags"`
+	Tags     []string `json:"Tags"`
 }
 
 // Google Clound Platform Envfiles

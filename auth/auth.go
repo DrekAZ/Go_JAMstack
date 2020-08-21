@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"log"
 	"net/http"
@@ -13,16 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
 
-	"auth_module/codes"
+	"server_module/convert"
+	"server_module/setting"
+	"server_module/status_code"
 )
 
-type AuthEnv struct {
-	Issuer       string
-	ClientID     string
-	ClientSecret string
-}
-
-func Auth(ctx context.Context, authEnv *AuthEnv) gin.HandlerFunc {
+func Auth(ctx context.Context, authEnv *setting.AuthEnv) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		provider, err := oidc.NewProvider(c, authEnv.Issuer)
 		if err != nil {
@@ -37,12 +32,12 @@ func Auth(ctx context.Context, authEnv *AuthEnv) gin.HandlerFunc {
 			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		}
 
-		state, err := randStr(13)
+		state, err := convert.Rand2str(13)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
 		}
-		nonce, err := randStr(17)
+		nonce, err := convert.Rand2str(17)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
@@ -60,7 +55,7 @@ func Auth(ctx context.Context, authEnv *AuthEnv) gin.HandlerFunc {
 	}
 }
 
-func Callback(ctx context.Context, authEnv *AuthEnv, client *firestore.Client) gin.HandlerFunc {
+func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// この部分は /auth のコードと同じ
 		provider, err := oidc.NewProvider(ctx, authEnv.Issuer)
@@ -159,7 +154,7 @@ func login(ctx context.Context, client *firestore.Client, email string) error {
 
 	// not found email
 	// sign up -> add email to firestore(GCP)
-	if err.Error() == codes.NotFound {
+	if err.Error() == status_code.NotFound {
 		_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
 			"email": email,
 		})
@@ -172,22 +167,4 @@ func login(ctx context.Context, client *firestore.Client, email string) error {
 
 	//c.Redirect(http.StatusOK, "http://localhost:8090")
 	return nil
-}
-
-func randStr(digit uint32) (string, error) {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-	// 乱数を生成
-	b := make([]byte, digit)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-
-	// letters からランダムに取り出して文字列を生成
-	var result string
-	for _, v := range b {
-		// index が letters の長さに収まるように調整
-		result += string(letters[int(v)%len(letters)])
-	}
-	return result, nil
 }

@@ -9,5 +9,6 @@ require (
 	github.com/gin-gonic/gin v1.6.3
 	github.com/pquerna/cachecontrol v0.0.0-20200819021114-67c6ae64274f // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
+	google.golang.org/grpc v1.30.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )

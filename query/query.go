@@ -1,23 +1,20 @@
-package query 
-import (
-  "fmt"
-  //"log"
-  "context"
-  "os"
-  "io/ioutil"
-  "time"
-  "unsafe" 
-	//"encoding/json"
+package query
 
-  "cloud.google.com/go/storage"
+import (
+	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"time"
+
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
-  //"golang.org/x/oauth2/google"
 )
 
 type JsonData struct {
-  Name  string `json:"name"`
-  Markdown string `json:"markdown"`
+	Name     string `json:"name"`
+	Markdown string `json:"markdown"`
 }
 
 /*func main() {
@@ -65,96 +62,88 @@ type JsonData struct {
 }*/
 
 /////////////////////////////
-func Fire_Read(ctx context.Context, client *firestore.Client, read_type string, key string) (*firestore.DocumentIterator){
-  refs := client.Collection(read_type).Where(key, "==", true).Documents(ctx)
-  return refs
+func FirestoreRead(ctx context.Context, client *firestore.Client, read_type string, key string) *firestore.DocumentIterator {
+	refs := client.Collection(read_type).Where(key, "==", true).Documents(ctx)
+	return refs
 }
-func Fire_Update(ctx context.Context, client *firestore.Client, bucket, write_type string, key string, value string) (error) {
-  defer client.Close()
+func FirestoreUpdate(ctx context.Context, client *firestore.Client, bucket, write_type string, key string, value string) error {
+	defer client.Close()
 
-  refs := Fire_Read(ctx, client, write_type, key)
+	refs := FirestoreRead(ctx, client, write_type, key)
 
-  for {
-    ref, err := refs.Next()
-    if err == iterator.Done {
-      break
-    }
-    if err != nil {
-      return err
-    }
-    _, err = ref.Ref.Update(ctx, []firestore.Update {
-      {Path: key, Value: value},
-    })
-  }
-  return nil
+	for {
+		ref, err := refs.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		_, err = ref.Ref.Update(ctx, []firestore.Update{
+			{Path: key, Value: value},
+		})
+	}
+	return nil
 }
-func Fire_Contents_Write(ctx context.Context, client *firestore.Client, data map[string]interface{}) (error) {
+func FireContentsWrite(ctx context.Context, client *firestore.Client, data map[string]interface{}) error {
 	batch := client.Batch()
-  ref := client.Collection("contents").Doc(data["Title"].(string))
-  // data["UserID"] = ref.Path
+	ref := client.Collection("contents").Doc(data["Title"].(string))
+	// data["UserID"] = ref.Path
 
-  // write_type == users, contents, tags
-  batch.Set(ref, data, firestore.MergeAll)
+	// write_type == users, contents, tags
+	batch.Set(ref, data, firestore.MergeAll)
 	// tags write
-  tags, _ := data["Tags"].([]interface{})
+	tags, _ := data["Tags"].([]interface{})
 	//fmt.Println(tags[0].(string))
-  for _, tag := range tags{ // math science ...
+	for _, tag := range tags { // math science ...
 		t_ref := client.Collection("tags").Doc(tag.(string))
-    batch.Set(t_ref, map[string]string{ "content_id": ref.ID}, firestore.MergeAll)
-  }
+		batch.Set(t_ref, map[string]string{"content_id": ref.ID}, firestore.MergeAll)
+	}
 
 	_, err := batch.Commit(ctx)
 	if err != nil {
 		return err
 	}
-  return nil
+	return nil
 }
-/////////////////////////////
 
-func Storage_Write(ctx context.Context, client *storage.Client, bucket, title string, markdown string) (error) {
-  f, err := os.Open(title)
-  if err != nil {
-    return err
-  }
-  defer f.Close()
+func StorageWrite(ctx context.Context, client *storage.Client, bucket, title string, markdown string) error {
+	f, err := os.Open(title)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
 
-  ctx, cancel := context.WithTimeout(ctx, time.Second*5000)
-  defer cancel()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5000)
+	defer cancel()
 
-  wc := client.Bucket(bucket).Object(title).NewWriter(ctx)
+	wc := client.Bucket(bucket).Object(title).NewWriter(ctx)
 	_, err = fmt.Fprintf(wc, markdown)
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
 	err = wc.Close()
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
-  return nil
+	return nil
 }
-func Storage_Read(ctx context.Context, client *storage.Client, bucket, name string) ([]byte, error) {
-  ctx, cancel := context.WithTimeout(ctx, time.Second*5000)
-  defer cancel()
+func StorageRead(ctx context.Context, client *storage.Client, bucket, name string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5000)
+	defer cancel()
 
-  rc, err := client.Bucket(bucket).Object(name).NewReader(ctx)
-  if err != nil {
-    return nil, err
-  }
-  defer rc.Close()
+	rc, err := client.Bucket(bucket).Object(name).NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
 
-  data, err := ioutil.ReadAll(rc)
-  if err != nil {
-    return nil, err
-  }
+	data, err := ioutil.ReadAll(rc)
+	if err != nil {
+		return nil, err
+	}
 
-  return data, nil
-}
-
-//func Create_User(ctx, context.Context, client *storage.Client, data map[string]interface{}) {
-//}
-
-func Byte2str(b []byte) (string) {
-  return *(*string)(unsafe.Pointer(&b))
+	return data, nil
 }

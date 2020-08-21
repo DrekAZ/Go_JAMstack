@@ -6,30 +6,19 @@ import (
 	"fmt"
 	"log"
 
-	//"net/http"
-	"os"
-	/*"io"
-	  "io/ioutil"
-	  "time"
-	  "strings"
-	  "flag"*/
-	"crypto/rand"
-	"encoding/json"
 	"reflect"
 
 	"cloud.google.com/go/firestore"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 
-	//"cloud.google.com/go/storage"
-	//"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
 	"server_module/auth"
 	"server_module/query"
+	"server_module/setting"
 )
 
 // user info data (comments, profile ...) struct
@@ -54,22 +43,8 @@ type Content struct {
 	Tags     []string `json:"Tags"`
 }
 
-// Google Clound Platform Envfiles
-type Env struct {
-	projectID    string
-	jsonPath     string
-	bucket       string
-	cookieSecret string
-}
-
-/*type AuthEnv struct {
-  issuer string
-  clientID string
-  clientSecret string
-}*/
-
 func main() {
-	env, authEnv, err := GetEnv()
+	env, authEnv, err := setting.GetEnv()
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -80,15 +55,15 @@ func main() {
 	    log.Fatalf("Failed to create client: %v", err)
 	  }*/
 
-	fireClient, err := firestore.NewClient(ctx, env.projectID, option.WithCredentialsFile(env.jsonPath))
+	fireClient, err := firestore.NewClient(ctx, env.ProjectID, option.WithCredentialsFile(env.JSONPath))
 	if err != nil {
 		log.Printf("Failed to create client: %v", err)
 	}
 
-	store := cookie.NewStore([]byte(env.cookieSecret))
+	store := cookie.NewStore([]byte(env.CookieSecret))
 	router := gin.Default()
 	router.Use(sessions.Sessions("useron", store))
-	router.Use(ErrorMiddleware())
+	router.Use(setting.ErrorMiddleware())
 
 	//router.POST("/signup", signup(ctx, f_client))
 	//router.GET("/login", login(ctx, f_client))
@@ -216,30 +191,13 @@ func main() {
     })
   }
 }*/
-func ErrorMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		err := c.Errors.ByType(gin.ErrorTypePublic).Last()
-		if err != nil {
-			log.Println(err.Err)
-			c.AbortWithStatus(400)
-		}
-
-		err = c.Errors.ByType(gin.ErrorTypePrivate).Last()
-		if err != nil {
-			log.Println(err.Err)
-			c.AbortWithStatus(500)
-		}
-	}
-}
 
 func AuthUser(ctx context.Context, client *firestore.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		token := session.Get("token").(string)
 
-		refs := query.Fire_Read(ctx, client, "users", token)
+		refs := query.FirestoreRead(ctx, client, "users", token)
 		if refs == nil {
 			log.Println("cannot find address")
 		}
@@ -257,59 +215,4 @@ func AuthUser(ctx context.Context, client *firestore.Client) gin.HandlerFunc {
 			"ok": true,
 		})
 	}
-}
-
-func Struct2Map(data interface{}) map[string]interface{} {
-	B, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("marshal err", err)
-		return nil
-	}
-
-	var m map[string]interface{}
-	err = json.Unmarshal(B, &m)
-	if err != nil {
-		fmt.Println("unmarshal err", err)
-		return nil
-	}
-	return m
-}
-
-func GetEnv() (*Env, *auth.AuthEnv, error) {
-	var gcpEnv Env
-	var authEnv auth.AuthEnv
-
-	err := godotenv.Load(".env")
-	if err != nil {
-		//log.Fatal("Main env cannnot load")
-		return &gcpEnv, &authEnv, err
-	}
-
-	gcpEnv.projectID = os.Getenv("PROJECT_ID")
-	gcpEnv.jsonPath = os.Getenv("JSON_PATH")
-	gcpEnv.bucket = os.Getenv("BUCKET")
-	gcpEnv.cookieSecret = os.Getenv("COOKIE_SECRET")
-
-	authEnv.Issuer = os.Getenv("AUTH0_DOMAIN")
-	authEnv.ClientID = os.Getenv("AUTH0_CLIENT_ID")
-	authEnv.ClientSecret = os.Getenv("AUTH0_CLIENT_SECRET")
-	return &gcpEnv, &authEnv, err
-}
-
-func RandStr(digit uint32) (string, error) {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-	// 乱数を生成
-	b := make([]byte, digit)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-
-	// letters からランダムに取り出して文字列を生成
-	var result string
-	for _, v := range b {
-		// index が letters の長さに収まるように調整
-		result += string(letters[int(v)%len(letters)])
-	}
-	return result, nil
 }

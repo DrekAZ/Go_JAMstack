@@ -3,8 +3,10 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	oidc "github.com/coreos/go-oidc"
@@ -51,7 +53,7 @@ func Auth(ctx context.Context, authEnv *setting.AuthEnv) gin.HandlerFunc {
 
 		authURL := config.AuthCodeURL(state, oidc.Nonce(nonce))
 		c.Redirect(http.StatusFound, authURL)
-		log.Print("Auth finish -> go callback")
+		log.Println("Auth finish -> go callback")
 	}
 }
 
@@ -67,7 +69,7 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 			ClientID:     authEnv.ClientID,
 			ClientSecret: authEnv.ClientSecret,
 			Endpoint:     provider.Endpoint(),
-			RedirectURL:  "http://localhost:8090/login",
+			RedirectURL:  "http://localhost:8090",
 			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		}
 
@@ -94,6 +96,7 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 		if !ok {
 			//http.Error(w, "missing token", http.StatusInternalServerError)
+			err = errors.New("missing token")
 			c.Error(err).SetType(gin.ErrorTypePublic)
 			return
 		}
@@ -114,16 +117,17 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 		}
 		if idToken.Nonce != session.Get("nonce") {
 			//log.Fatal("incorrect nonce")
+			err = errors.New("incorrect nonce")
 			c.Error(err).SetType(gin.ErrorTypePublic)
 			return
 		}
 
 		// アプリケーションのデータ構造におとすときは以下のように書く
 		idTokenClaims := map[string]interface{}{}
-		if err := idToken.Claims(&idTokenClaims); err != nil {
+		err = idToken.Claims(&idTokenClaims)
+		if err != nil {
 			//http.Error(w, err.Error(), http.StatusInternalServerError)
 			c.Error(err).SetType(gin.ErrorTypePrivate)
-			//log.Fatal(err)
 			return
 		}
 
@@ -133,38 +137,36 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 		session.Set("id_token", rawIDToken)
 		//session.Set("access_token", oauth2Token)
 		session.Set("profile", idTokenClaims)
-		//fmt.Printf("%#v", idTokenClaims)
+		fmt.Printf("%#v\n", rawIDToken)
+		fmt.Printf("%#v\n", idTokenClaims)
 
-		log.Print("認証成功")
-		err = login(ctx, client, idTokenClaims["email"].(string))
+		log.Println("認証成功")
+		err = Login(ctx, client, idTokenClaims["email"].(string))
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
 		}
-		c.Redirect(http.StatusOK, "http://localhost:8080")
+		c.Redirect(http.StatusFound, "http://localhost:8090")
 	}
 }
 
-func login(ctx context.Context, client *firestore.Client, email string) error {
+func Login(ctx context.Context, client *firestore.Client, email string) error {
 	defer client.Close()
-	iter := client.Collection("users").Where(email, "==", true).Documents(ctx)
+	iter := client.Collection("users").Where("email", "==", email).Documents(ctx)
 	// email is uniqu
 	_, err := iter.Next()
-	//fmt.Printf("%s", err.Error())
 
 	// not found email
 	// sign up -> add email to firestore(GCP)
-	if err.Error() == status_code.NotFound {
+	if err != nil && err.Error() == status_code.NotFound {
 		_, _, err = client.Collection("users").Add(ctx, map[string]interface{}{
 			"email": email,
+			"time":  time.Now().Format(time.RFC3339Nano),
 		})
 		if err != nil {
 			return err
 		}
-	} else if err != nil {
-		return err
 	}
 
-	//c.Redirect(http.StatusOK, "http://localhost:8090")
-	return nil
+	return err
 }

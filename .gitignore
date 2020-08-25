@@ -1,7 +1,7 @@
 .vscode/
 main
-YOU-KNOW-be4a1d88e2c3.json
 .env
 auth/.env
-memo.png
-main.exe
+*.json
+*.png
+*.exe

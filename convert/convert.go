@@ -2,6 +2,7 @@ package convert
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"unsafe"
@@ -23,22 +24,14 @@ func Struct2Map(data interface{}) map[string]interface{} {
 	return m
 }
 
-func Rand2str(digit uint32) (string, error) {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
+func Rand2base64(digit uint32) (string, error) {
 	// 乱数を生成
 	b := make([]byte, digit)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err
 	}
-
-	// letters からランダムに取り出して文字列を生成
-	var result string
-	for _, v := range b {
-		// index が letters の長さに収まるように調整
-		result += string(letters[int(v)%len(letters)])
-	}
+	result := base64.StdEncoding.EncodeToString(b)
 	return result, nil
 }
 

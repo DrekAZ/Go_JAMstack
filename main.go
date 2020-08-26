@@ -68,8 +68,16 @@ func main() {
 	//router.POST("/signup", signup(ctx, f_client))
 	//router.GET("/login", login(ctx, f_client))
 	//router.GET("/authUser", authUser(ctx, f_client))
-	router.GET("/v1/auth", auth.Auth(ctx, authEnv))
+	router.GET("/", func(c *gin.Context) {
+		session := sessions.Default(c)
+		s := session.Get("id_token")
+		c.JSON(200, gin.H{
+			"id_token": s,
+		})
+	})
+	router.GET("/v1/auth/login", auth.Auth(ctx, authEnv))
 	router.GET("/v1/auth/callback", auth.Callback(ctx, authEnv, fireClient))
+	router.GET("/v1/auth/logout", auth.Logout(ctx, authEnv))
 	//router.GET("/login", login(ctx, f_client))
 
 	router.GET("/get", func(c *gin.Context) {

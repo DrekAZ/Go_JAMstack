@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -34,12 +35,12 @@ func Auth(ctx context.Context, authEnv *setting.AuthEnv) gin.HandlerFunc {
 			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		}
 
-		state, err := convert.Rand2str(13)
+		state, err := convert.Rand2base64(32)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
 		}
-		nonce, err := convert.Rand2str(17)
+		nonce, err := convert.Rand2base64(32)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
@@ -53,7 +54,6 @@ func Auth(ctx context.Context, authEnv *setting.AuthEnv) gin.HandlerFunc {
 
 		authURL := config.AuthCodeURL(state, oidc.Nonce(nonce))
 		c.Redirect(http.StatusFound, authURL)
-		log.Println("Auth finish -> go callback")
 	}
 }
 
@@ -123,7 +123,7 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 		}
 
 		// アプリケーションのデータ構造におとすときは以下のように書く
-		idTokenClaims := map[string]interface{}{}
+		var idTokenClaims map[string]interface{}
 		err = idToken.Claims(&idTokenClaims)
 		if err != nil {
 			//http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -136,7 +136,8 @@ func Callback(ctx context.Context, authEnv *setting.AuthEnv, client *firestore.C
 		session.Save()
 		session.Set("id_token", rawIDToken)
 		//session.Set("access_token", oauth2Token)
-		session.Set("profile", idTokenClaims)
+		//session.Set("profile", idTokenClaims)
+		session.Save()
 		fmt.Printf("%#v\n", rawIDToken)
 		fmt.Printf("%#v\n", idTokenClaims)
 
@@ -169,4 +170,39 @@ func Login(ctx context.Context, client *firestore.Client, email string) error {
 	}
 
 	return err
+}
+
+func Logout(ctx context.Context, authEnv *setting.AuthEnv) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		session.Clear()
+		session.Save()
+
+		logoutURL, err := url.Parse(authEnv.Issuer)
+		if err != nil {
+			c.Error(err).SetType(gin.ErrorTypePrivate)
+			return
+		}
+
+		logoutURL.Path += "v2/logout"
+		param := url.Values{}
+
+		var scheme string
+		if c.Request.TLS == nil {
+			scheme = "http"
+		} else {
+			scheme = "https"
+		}
+		returnTo, err := url.Parse(scheme + "://" + c.Request.Host)
+		if err != nil {
+			c.Error(err).SetType(gin.ErrorTypePrivate)
+			return
+		}
+		param.Add("returnTo", returnTo.String())
+		param.Add("client_id", authEnv.ClientID)
+		logoutURL.RawQuery = param.Encode()
+
+		c.Redirect(http.StatusTemporaryRedirect, logoutURL.String())
+		log.Println("Logout")
+	}
 }

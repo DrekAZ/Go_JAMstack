@@ -23,6 +23,25 @@ type AuthEnv struct {
 	ClientSecret string
 }
 
+// OnceTeam is Struct for recruit once team members
+type OnceTeam struct {
+	AppLink    string   `json:"AppLink" binding:"required"`
+	Console    string   `json:"Console" binding:"required"`
+	Msg        string   `json:"Msg" binding:"required"`
+	GameTag    []string `json:"GameTag" binding:"required"`
+	RecruitCnt []uint8  `json:"RecruitCnt" binding:"required"`
+	IsPublic   bool     `json:"IsPublic" binding:"required"`
+}
+
+// Group is Struct for recruit discord members
+type Group struct {
+	AppLink  string   `json:"AppLink" binding:"required"`
+	Console  string   `json:"Console" binding:"required"`
+	Msg      string   `json:"Msg" binding:"required"`
+	GameTag  []string `json:"GameTag" binding:"required"`
+	IsPublic bool     `json:"IsPublic" binding:"required"`
+}
+
 func ErrorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
@@ -41,13 +60,12 @@ func ErrorMiddleware() gin.HandlerFunc {
 	}
 }
 
-func GetEnv() (*Env, *AuthEnv, error) {
+func GetEnv() (*Env, error) {
 	var gcpEnv Env
-	var authEnv AuthEnv
 
 	err := godotenv.Load(".env")
 	if err != nil {
-		return &gcpEnv, &authEnv, err
+		return nil, err
 	}
 
 	gcpEnv.ProjectID = os.Getenv("PROJECT_ID")
@@ -55,8 +73,5 @@ func GetEnv() (*Env, *AuthEnv, error) {
 	gcpEnv.Bucket = os.Getenv("BUCKET")
 	gcpEnv.CookieSecret = os.Getenv("COOKIE_SECRET")
 
-	authEnv.Issuer = os.Getenv("AUTH0_DOMAIN")
-	authEnv.ClientID = os.Getenv("AUTH0_CLIENT_ID")
-	authEnv.ClientSecret = os.Getenv("AUTH0_CLIENT_SECRET")
-	return &gcpEnv, &authEnv, nil
+	return &gcpEnv, nil
 }

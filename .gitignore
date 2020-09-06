@@ -1,7 +1,9 @@
 .vscode/
 main
 .env
-auth/.env
+auth/
 *.json
 *.png
 *.exe
+dev.bat
+Dockerfile

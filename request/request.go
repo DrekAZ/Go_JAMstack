@@ -37,7 +37,7 @@ func Search(ctx context.Context, client *firestore.Client, colName string) gin.H
 
 		data, endPage := query.FireReadContent(snaps)
 
-		c.JSON(http.StatusOk, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"data": data,
 			"page": endPage,
 		})

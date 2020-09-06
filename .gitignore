@@ -7,3 +7,4 @@ auth/
 *.exe
 dev.bat
 Dockerfile
+status_code/

@@ -38,5 +38,5 @@ func main() {
 		v1.PUT("/update/Group", request.Update(ctx, fireClient, "Group"))
 	}
 
-	router.Run(":8090")
+	router.Run(":8000")
 }

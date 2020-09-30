@@ -3,6 +3,7 @@ package request
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 
 	"cloud.google.com/go/firestore"
@@ -14,22 +15,18 @@ import (
 
 func Search(ctx context.Context, client *firestore.Client, colName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		console := c.Query("console")
-		tag := c.Query("tag")
+		var value [3]string
+		value[0] = c.Query("tool")
+		value[1] = c.Query("console")
+		value[2] = c.Query("tag")
 		page := c.Query("page")
 		isLatest := convert.Str2bool(c.DefaultQuery("isLatest", "true"))
 		snaps := make([]*firestore.DocumentSnapshot, 20)
 		var err error
 
-		if console != "" && tag != "" {
-			snaps, err = query.FireRead(ctx, client, colName, [2]string{console, tag}, isLatest, page)
-		} else if console != "" {
-			snaps, err = query.FireRead(ctx, client, colName, [2]string{console, ""}, isLatest, page)
-		} else if tag != "" {
-			snaps, err = query.FireRead(ctx, client, colName, [2]string{"", tag}, isLatest, page)
-		}
+		snaps, err = query.FireRead(ctx, client, colName, value, isLatest, page)
 
-		if err != nil || (console == "" && tag == "") {
+		if err != nil {
 			e := errors.New("cannot get query")
 			c.Error(e).SetType(gin.ErrorTypePublic)
 			return
@@ -65,18 +62,18 @@ func Create(ctx context.Context, client *firestore.Client, colName string) gin.H
 	}
 }
 
-// switch IsPublic
-// {"page": pageurl, ...}
 func Update(ctx context.Context, client *firestore.Client, colName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		data, err := convert.BindJson2map(c, colName)
+		data, page, err := convert.UpdateBindJson2map(c, colName)
+		log.Println(data)
+		log.Println(page)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return
 		}
 
-		err = query.FireUpdateBoard(ctx, client, colName, data)
+		err = query.FireUpdateBoard(ctx, client, colName, data, page)
 		if err != nil {
 			c.Error(err).SetType(gin.ErrorTypePrivate)
 			return

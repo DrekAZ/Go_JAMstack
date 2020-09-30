@@ -5,9 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"unsafe"
-
 	"server_module/setting"
+	"unsafe"
 
 	"github.com/gin-gonic/gin"
 )
@@ -90,4 +89,31 @@ func BindJson2map(c *gin.Context, colName string) (map[string]interface{}, error
 		}
 	}
 	return m, nil
+}
+
+func UpdateBindJson2map(c *gin.Context, colName string) (map[string]interface{}, string, error) {
+	var m map[string]interface{}
+
+	if colName == "OnceTeam" {
+		var j setting.UpdateOnceTeam
+		err := c.BindJSON(&j)
+		if err != nil {
+			return nil, "", err
+		}
+		m, err = Struct2map(j)
+		if err != nil {
+			return nil, "", err
+		}
+	} else if colName == "Group" {
+		var j setting.UpdateGroup
+		err := c.BindJSON(&j)
+		if err != nil {
+			return nil, "", err
+		}
+		m, err = Struct2map(j)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	return m["Data"].(map[string]interface{}), m["Page"].(string), nil
 }

@@ -2,22 +2,24 @@ package query
 
 import (
 	"context"
+	"log"
 
 	"cloud.google.com/go/firestore"
 )
 
-func FireRead(ctx context.Context, client *firestore.Client, colName string, value [2]string, isLatest bool, endPage string) ([]*firestore.DocumentSnapshot, error) {
+func FireRead(ctx context.Context, client *firestore.Client, colName string, value [3]string, isLatest bool, endPage string) ([]*firestore.DocumentSnapshot, error) {
 	snaps := make([]*firestore.DocumentSnapshot, 20)
 	var err error
-	var q firestore.Query
+	q := client.Collection(colName).Where("IsPublic", "==", true)
 
-	// value
-	if value[0] != "" && value[1] != "" {
-		q = client.Collection(colName).Where("Console", "==", value[0]).Where("GameTag", "array-contains", value[1])
-	} else if value[0] != "" {
-		q = client.Collection(colName).Where("Console", "==", value[0])
-	} else if value[1] != "" {
-		q = client.Collection(colName).Where("GameTag", "array-contains", value[1])
+	if value[0] != "" {
+		q = q.Where("Tool", "==", value[0])
+	}
+	if value[1] != "" {
+		q = q.Where("Console", "==", value[1])
+	}
+	if value[2] != "" {
+		q = q.Where("GameTag", "array-contains", value[2])
 	}
 
 	// latest
@@ -36,6 +38,7 @@ func FireRead(ctx context.Context, client *firestore.Client, colName string, val
 	}
 
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	return snaps, nil
@@ -48,9 +51,7 @@ func FireCreateBoard(ctx context.Context, client *firestore.Client, colName stri
 	return ref.ID, err
 }
 
-func FireUpdateBoard(ctx context.Context, client *firestore.Client, colName string, data map[string]interface{}) error {
-	page := data["page"].(string)
-	delete(data, "page")
+func FireUpdateBoard(ctx context.Context, client *firestore.Client, colName string, data map[string]interface{}, page string) error {
 	data["UpdateTime"] = firestore.ServerTimestamp
 	_, err := client.Collection(colName).Doc(page).Set(ctx, data, firestore.MergeAll)
 
@@ -65,7 +66,7 @@ func FireReadContent(snaps []*firestore.DocumentSnapshot) ([]map[string]interfac
 	}
 
 	endPage := ""
-	if len(m) == 20 {
+	if len(snaps) == 20 {
 		endPage = snaps[len(snaps)-1].Ref.ID
 	}
 

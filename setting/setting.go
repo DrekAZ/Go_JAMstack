@@ -23,23 +23,37 @@ type AuthEnv struct {
 	ClientSecret string
 }
 
-// OnceTeam is Struct for recruit once team members
+// Party is Struct for recruit once team members
 type OnceTeam struct {
+	Tool       string   `json:"Tool" binding:"required"`
 	AppLink    string   `json:"AppLink" binding:"required"`
+	Name       string   `json:"Name" binding:"required"`
 	Console    string   `json:"Console" binding:"required"`
 	Msg        string   `json:"Msg" binding:"required"`
 	GameTag    []string `json:"GameTag" binding:"required"`
-	RecruitCnt []uint8  `json:"RecruitCnt" binding:"required"`
-	IsPublic   bool     `json:"IsPublic" binding:"required"`
+	RecruitCnt []int    `json:"RecruitCnt" binding:"required"`
+	IsPublic   bool     `json:"IsPublic"`
 }
 
 // Group is Struct for recruit discord members
 type Group struct {
+	Tool     string   `json:"Tool" binding:"required"`
 	AppLink  string   `json:"AppLink" binding:"required"`
+	Name     string   `json:"Name" binding:"required"`
 	Console  string   `json:"Console" binding:"required"`
 	Msg      string   `json:"Msg" binding:"required"`
 	GameTag  []string `json:"GameTag" binding:"required"`
-	IsPublic bool     `json:"IsPublic" binding:"required"`
+	IsPublic bool     `json:"IsPublic"`
+}
+
+type UpdateOnceTeam struct {
+	Data OnceTeam `json:"Data"`
+	Page string   `json:"Page" binding:"required"`
+}
+
+type UpdateGroup struct {
+	Data Group  `json:"Data"`
+	Page string `json:"Page" binding:"required"`
 }
 
 func ErrorMiddleware() gin.HandlerFunc {

@@ -28,7 +28,7 @@ func main() {
 	router := gin.Default()
 	router.Use(setting.ErrorMiddleware())
 
-	v1 := router.Group("/v1")
+	v1 := router.Group("game-board/v1")
 	{
 		v1.GET("/search/OnceTeam", request.Search(ctx, fireClient, "OnceTeam"))
 		v1.GET("/search/Group", request.Search(ctx, fireClient, "Group"))

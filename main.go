@@ -14,6 +14,8 @@ import (
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
+
 	env, err := setting.GetEnv()
 	if err != nil {
 		log.Println(err.Error())
